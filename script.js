@@ -268,4 +268,297 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     console.log('Ms. Hoa\'s Chinese Language Website - Initialized Successfully! 🏮');
+
+    // Authentication functionality
+    initializeAuth();
 });
+
+// Authentication System
+let currentUser = null;
+const API_BASE = window.location.origin + '/api';
+
+function initializeAuth() {
+    // Check for existing token
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        validateToken(token);
+    }
+
+    // Modal controls
+    const loginModal = document.getElementById('loginModal');
+    const registerModal = document.getElementById('registerModal');
+    const profileModal = document.getElementById('profileModal');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const profileBtn = document.getElementById('profileBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Modal open/close
+    loginBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginModal.style.display = 'block';
+    });
+
+    registerBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        registerModal.style.display = 'block';
+    });
+
+    profileBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentUser) {
+            loadProfile();
+            profileModal.style.display = 'block';
+        }
+    });
+
+    logoutBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        logout();
+    });
+
+    // Close modals
+    document.getElementById('closeLogin')?.addEventListener('click', () => {
+        loginModal.style.display = 'none';
+    });
+
+    document.getElementById('closeRegister')?.addEventListener('click', () => {
+        registerModal.style.display = 'none';
+    });
+
+    document.getElementById('closeProfile')?.addEventListener('click', () => {
+        profileModal.style.display = 'none';
+    });
+
+    // Switch between login/register
+    document.getElementById('switchToRegister')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginModal.style.display = 'none';
+        registerModal.style.display = 'block';
+    });
+
+    document.getElementById('switchToLogin')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        registerModal.style.display = 'none';
+        loginModal.style.display = 'block';
+    });
+
+    // Form submissions
+    document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
+    document.getElementById('registerForm')?.addEventListener('submit', handleRegister);
+
+    // Close modal when clicking outside
+    window.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+            e.target.style.display = 'none';
+        }
+    });
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+
+    try {
+        showLoading(e.target.querySelector('button'));
+        
+        const response = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            localStorage.setItem('authToken', result.data.token);
+            currentUser = result.data.user;
+            updateAuthUI();
+            document.getElementById('loginModal').style.display = 'none';
+            showMessage(result.message, 'success');
+            e.target.reset();
+        } else {
+            showMessage(result.message, 'error');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối. Vui lòng thử lại sau.', 'error');
+    } finally {
+        hideLoading(e.target.querySelector('button'));
+    }
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+
+    try {
+        showLoading(e.target.querySelector('button'));
+        
+        const response = await fetch(`${API_BASE}/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            localStorage.setItem('authToken', result.data.token);
+            currentUser = result.data.user;
+            updateAuthUI();
+            document.getElementById('registerModal').style.display = 'none';
+            showMessage(result.message, 'success');
+            e.target.reset();
+        } else {
+            showMessage(result.message, 'error');
+        }
+    } catch (error) {
+        showMessage('Lỗi kết nối. Vui lòng thử lại sau.', 'error');
+    } finally {
+        hideLoading(e.target.querySelector('button'));
+    }
+}
+
+async function validateToken(token) {
+    try {
+        const response = await fetch(`${API_BASE}/auth/profile`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            currentUser = result.data.user;
+            updateAuthUI();
+        } else {
+            localStorage.removeItem('authToken');
+        }
+    } catch (error) {
+        localStorage.removeItem('authToken');
+    }
+}
+
+async function loadProfile() {
+    if (!currentUser) return;
+
+    // Update profile info
+    document.getElementById('profileName').textContent = currentUser.full_name;
+    document.getElementById('profileEmail').textContent = currentUser.email;
+    document.getElementById('profileTier').textContent = currentUser.membership_tier === 'free' ? 'Miễn phí' : 'VIP';
+    document.getElementById('profileJoinDate').textContent = new Date(currentUser.created_at).toLocaleDateString('vi-VN');
+
+    // Load courses
+    try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE}/courses`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            const coursesHtml = result.data.courses.map(course => `
+                <div class="course-item">
+                    <h4>${course.title} <span class="chinese-text">${course.title_chinese}</span></h4>
+                    <p>${course.description}</p>
+                    <div class="course-meta">
+                        <span class="level">${course.level}</span>
+                        <span class="hsk">${course.hsk_level}</span>
+                        <span class="price">${course.price_vnd === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN').format(course.price_vnd) + ' VNĐ'}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('coursesContent').innerHTML = coursesHtml;
+        }
+    } catch (error) {
+        document.getElementById('coursesContent').innerHTML = '<p>Không thể tải danh sách khóa học.</p>';
+    }
+}
+
+function updateAuthUI() {
+    const authSection = document.querySelector('.auth-section');
+    const userMenu = document.getElementById('userMenu');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const userName = document.getElementById('userName');
+
+    if (currentUser) {
+        // Show user menu, hide login/register
+        loginBtn.style.display = 'none';
+        registerBtn.style.display = 'none';
+        userMenu.style.display = 'flex';
+        userName.textContent = currentUser.full_name;
+    } else {
+        // Show login/register, hide user menu
+        loginBtn.style.display = 'block';
+        registerBtn.style.display = 'block';
+        userMenu.style.display = 'none';
+    }
+}
+
+function logout() {
+    localStorage.removeItem('authToken');
+    currentUser = null;
+    updateAuthUI();
+    showMessage('Đã đăng xuất thành công!', 'success');
+}
+
+function showLoading(button) {
+    const originalText = button.textContent;
+    button.textContent = 'Đang xử lý...';
+    button.disabled = true;
+    button.dataset.originalText = originalText;
+}
+
+function hideLoading(button) {
+    button.textContent = button.dataset.originalText;
+    button.disabled = false;
+}
+
+function showMessage(message, type = 'info') {
+    // Create toast notification
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    // Style the toast
+    Object.assign(toast.style, {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        background: type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8',
+        color: 'white',
+        padding: '15px 20px',
+        borderRadius: '5px',
+        zIndex: '3000',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        transform: 'translateX(100%)',
+        transition: 'transform 0.3s ease'
+    });
+
+    document.body.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 10);
+
+    // Animate out and remove
+    setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}

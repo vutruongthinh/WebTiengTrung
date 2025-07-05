@@ -16,11 +16,20 @@
                 <h2>Ms. Hoa <span class="chinese-text">华老师</span></h2>
             </div>
             <ul class="nav-menu">
-                <li><a href="#home" class="nav-link">Home</a></li>
-                <li><a href="#about" class="nav-link">About</a></li>
-                <li><a href="#courses" class="nav-link">Courses</a></li>
-                <li><a href="#experience" class="nav-link">Experience</a></li>
-                <li><a href="#contact" class="nav-link">Contact</a></li>
+                <li><a href="#home" class="nav-link">Trang chủ</a></li>
+                <li><a href="#about" class="nav-link">Giới thiệu</a></li>
+                <li><a href="#courses" class="nav-link">Khóa học</a></li>
+                <li><a href="#experience" class="nav-link">Kinh nghiệm</a></li>
+                <li><a href="#contact" class="nav-link">Liên hệ</a></li>
+                <li class="auth-section">
+                    <a href="#" class="nav-link auth-link" id="loginBtn">Đăng nhập</a>
+                    <a href="#" class="nav-link auth-link" id="registerBtn">Đăng ký</a>
+                    <div class="user-menu" id="userMenu" style="display: none;">
+                        <span class="user-name" id="userName"></span>
+                        <a href="#" class="nav-link" id="profileBtn">Hồ sơ</a>
+                        <a href="#" class="nav-link" id="logoutBtn">Đăng xuất</a>
+                    </div>
+                </li>
             </ul>
             <div class="hamburger">
                 <span></span>
@@ -594,6 +603,88 @@
             </div>
         </div>
     </footer>
+
+    <!-- Authentication Modals -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeLogin">&times;</span>
+            <h2>Đăng nhập tài khoản</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Mật khẩu</label>
+                    <input type="password" id="loginPassword" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary full-width">Đăng nhập</button>
+                <p class="auth-switch">
+                    Chưa có tài khoản? <a href="#" id="switchToRegister">Đăng ký ngay</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeRegister">&times;</span>
+            <h2>Đăng ký tài khoản</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="registerName">Họ và tên</label>
+                    <input type="text" id="registerName" name="full_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Mật khẩu</label>
+                    <input type="password" id="registerPassword" name="password" required minlength="6">
+                    <small>Mật khẩu phải có ít nhất 6 ký tự</small>
+                </div>
+                <button type="submit" class="btn btn-primary full-width">Đăng ký</button>
+                <p class="auth-switch">
+                    Đã có tài khoản? <a href="#" id="switchToLogin">Đăng nhập</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeProfile">&times;</span>
+            <h2>Thông tin tài khoản</h2>
+            <div id="profileContent">
+                <div class="profile-info">
+                    <div class="info-item">
+                        <label>Họ và tên:</label>
+                        <span id="profileName"></span>
+                    </div>
+                    <div class="info-item">
+                        <label>Email:</label>
+                        <span id="profileEmail"></span>
+                    </div>
+                    <div class="info-item">
+                        <label>Gói thành viên:</label>
+                        <span id="profileTier"></span>
+                    </div>
+                    <div class="info-item">
+                        <label>Ngày tham gia:</label>
+                        <span id="profileJoinDate"></span>
+                    </div>
+                </div>
+                <div class="protected-content">
+                    <h3>Khu vực học viên</h3>
+                    <div id="coursesContent">
+                        <p>Đang tải danh sách khóa học...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
