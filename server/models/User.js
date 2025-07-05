@@ -1,4 +1,12 @@
 const { DataTypes } = require('sequelize');
+
+// For MVP testing, use mock database
+if (process.env.USE_MOCK_DB === 'true' || process.env.NODE_ENV === 'development') {
+    const { MockUserDB } = require('../config/mockDatabase');
+    module.exports = MockUserDB;
+    return;
+}
+
 const { sequelize } = require('../config/database');
 const bcrypt = require('bcryptjs');
 

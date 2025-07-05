@@ -12,10 +12,11 @@ const courseRoutes = require('./routes/courses');
 const userRoutes = require('./routes/users');
 const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
+const testRoutes = require('./routes/test');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
-const { sequelize } = require('./config/database');
+const { sequelize, testConnection, initializeDatabase } = require('./config/database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -57,6 +58,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/test', testRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -80,20 +82,17 @@ app.use(errorHandler);
 const startServer = async () => {
     try {
         // Test database connection
-        await sequelize.authenticate();
-        console.log('✅ Database connection established successfully.');
+        await testConnection();
         
-        // Sync database models (create tables)
-        if (process.env.NODE_ENV === 'development') {
-            await sequelize.sync({ alter: true });
-            console.log('✅ Database synchronized.');
-        }
+        // Initialize database (create tables)
+        await initializeDatabase();
         
         // Start the server
         app.listen(PORT, () => {
             console.log(`🚀 Ms. Hoa Chinese Learning Platform server running on port ${PORT}`);
-            console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
-            console.log(`📚 API Documentation: http://localhost:${PORT}/api/health`);
+            console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+            console.log(`📚 API Health Check: http://localhost:${PORT}/api/health`);
+            console.log(`🧪 Test Endpoints: http://localhost:${PORT}/api/test/test`);
         });
         
     } catch (error) {
