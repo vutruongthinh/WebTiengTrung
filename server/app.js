@@ -184,7 +184,7 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         // Find user
-        const user = users.find(u => u.email === email);
+        const user = await userOperations.findByEmail(email);
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -202,7 +202,7 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         // Update last login
-        user.last_login = new Date();
+        await userOperations.updateLastLogin(user.id);
 
         // Generate token
         const token = generateToken(user.id);
@@ -220,6 +220,7 @@ app.post('/api/auth/login', async (req, res) => {
         });
 
     } catch (error) {
+        console.error('Login error:', error);
         res.status(500).json({
             success: false,
             message: 'Lỗi server khi đăng nhập. Vui lòng thử lại sau.'
@@ -249,37 +250,24 @@ app.post('/api/auth/logout', authMiddleware, (req, res) => {
 });
 
 // Demo protected route
-app.get('/api/courses', authMiddleware, (req, res) => {
-    res.json({
-        success: true,
-        message: 'Danh sách khóa học',
-        data: {
-            courses: [
-                {
-                    id: 1,
-                    title: 'Tiếng Trung Cơ Bản',
-                    title_chinese: '基础中文',
-                    description: 'Khóa học tiếng Trung cơ bản cho người mới bắt đầu',
-                    level: 'beginner',
-                    hsk_level: 'HSK 1-2',
-                    required_tier: 'free',
-                    price_vnd: 0,
-                    is_featured: true
-                },
-                {
-                    id: 2,
-                    title: 'Tiếng Trung Nâng Cao',
-                    title_chinese: '高级中文',
-                    description: 'Khóa học tiếng Trung nâng cao cho học viên có kinh nghiệm',
-                    level: 'advanced',
-                    hsk_level: 'HSK 5-6',
-                    required_tier: 'vip',
-                    price_vnd: 2000000,
-                    is_featured: true
-                }
-            ]
-        }
-    });
+app.get('/api/courses', authMiddleware, async (req, res) => {
+    try {
+        const courses = await courseOperations.getAll();
+        
+        res.json({
+            success: true,
+            message: 'Danh sách khóa học',
+            data: {
+                courses
+            }
+        });
+    } catch (error) {
+        console.error('Courses error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi server khi tải khóa học. Vui lòng thử lại sau.'
+        });
+    }
 });
 
 // Serve frontend for all non-API routes
@@ -296,43 +284,26 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Initialize with demo data
-const initializeDemoData = async () => {
-    if (users.length === 0) {
-        try {
-            // Create demo user
-            const hashedPassword = await hashPassword('password123');
-            const demoUser = {
-                id: userIdCounter++,
-                email: 'demo@mshoa.com',
-                password: hashedPassword,
-                full_name: 'Học viên Demo',
-                membership_tier: 'free',
-                email_verified: true,
-                is_active: true,
-                created_at: new Date(),
-                updated_at: new Date()
-            };
-
-            users.push(demoUser);
-        } catch (error) {
-            // Ignore errors during demo data creation
-        }
-    }
-};
-
 // Start server
 const startServer = async () => {
-    await initializeDemoData();
-    
-    app.listen(PORT, () => {
-        console.log(`🚀 Ms. Hoa Chinese Learning Platform - MVP Server`);
-        console.log(`🌐 Running on: http://localhost:${PORT}`);
-        console.log(`📚 API Health: http://localhost:${PORT}/api/health`);
-        console.log(`🎯 Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`👤 Demo Account: demo@mshoa.com / password123`);
-        console.log(`✨ Ready for demo!`);
-    });
+    try {
+        // Initialize database and create tables
+        await initializeDatabase();
+        console.log('✅ Database initialized successfully');
+        
+        app.listen(PORT, () => {
+            console.log(`🚀 Ms. Hoa Chinese Learning Platform - MVP Server`);
+            console.log(`🌐 Running on: http://localhost:${PORT}`);
+            console.log(`📚 API Health: http://localhost:${PORT}/api/health`);
+            console.log(`🎯 Environment: ${process.env.NODE_ENV || 'development'}`);
+            console.log(`🗄️ Database: PostgreSQL ${process.env.DATABASE_URL ? 'Connected' : 'Local'}`);
+            console.log(`👤 Demo Account: demo@mshoa.com / password123`);
+            console.log(`✨ Ready for demo!`);
+        });
+    } catch (error) {
+        console.error('❌ Failed to start server:', error);
+        process.exit(1);
+    }
 };
 
 startServer();

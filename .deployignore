@@ -1,0 +1,12 @@
+# Deployment files
+node_modules/
+.env
+.git/
+*.log
+*.md
+azure-setup.ps1
+AZURE_INFRASTRUCTURE_SUMMARY.md
+CURRENT_STATUS.md
+DATABASE_DESIGN.md
+MVP_CLEANUP_ANALYSIS.md
+PRODUCTION_ARCHITECTURE.md

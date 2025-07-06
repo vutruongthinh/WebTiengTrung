@@ -1,13 +1,25 @@
 const { Pool } = require('pg');
 
 // Database configuration
-const dbConfig = {
+const dbConfig = process.env.DATABASE_URL ? {
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: { rejectUnauthorized: false },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+} : {
+    // Development fallback - won't work without local PostgreSQL
+    host: 'localhost',
+    port: 5432,
+    database: 'postgres',
+    user: 'postgres',
+    password: 'password',
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
 };
+
+console.log('🔗 Database Config:', process.env.DATABASE_URL ? 'Azure PostgreSQL' : 'Local PostgreSQL');
 
 // Create connection pool
 const pool = new Pool(dbConfig);
