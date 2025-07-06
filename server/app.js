@@ -38,6 +38,24 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static files (serve frontend)
 app.use(express.static(path.join(__dirname, '../')));
 
+// Basic health check for Azure
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'Ms. Hoa Chinese Learning Platform API',
+        status: 'running',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Helper functions
 const hashPassword = async (password) => {
     const salt = await bcrypt.genSalt(12);
@@ -287,19 +305,28 @@ app.use((err, req, res, next) => {
 // Start server
 const startServer = async () => {
     try {
-        // Initialize database and create tables
-        await initializeDatabase();
-        console.log('✅ Database initialized successfully');
-        
-        app.listen(PORT, () => {
+        // Start HTTP server first to satisfy Azure health checks
+        const server = app.listen(PORT, () => {
             console.log(`🚀 Ms. Hoa Chinese Learning Platform - MVP Server`);
             console.log(`🌐 Running on: http://localhost:${PORT}`);
             console.log(`📚 API Health: http://localhost:${PORT}/api/health`);
             console.log(`🎯 Environment: ${process.env.NODE_ENV || 'development'}`);
-            console.log(`🗄️ Database: PostgreSQL ${process.env.DATABASE_URL ? 'Connected' : 'Local'}`);
-            console.log(`👤 Demo Account: demo@mshoa.com / password123`);
-            console.log(`✨ Ready for demo!`);
+            console.log(`✨ Server started, initializing database...`);
         });
+
+        // Initialize database after server is running (non-blocking)
+        setTimeout(async () => {
+            try {
+                await initializeDatabase();
+                console.log('✅ Database initialized successfully');
+                console.log(`🗄️ Database: PostgreSQL ${process.env.DATABASE_URL ? 'Connected' : 'Local'}`);
+                console.log(`👤 Demo Account: demo@mshoa.com / password123`);
+                console.log(`✨ Ready for demo!`);
+            } catch (dbError) {
+                console.error('⚠️ Database initialization failed, running in limited mode:', dbError.message);
+                // Server continues running even if DB fails
+            }
+        }, 1000);
     } catch (error) {
         console.error('❌ Failed to start server:', error);
         process.exit(1);
