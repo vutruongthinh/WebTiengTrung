@@ -6,13 +6,10 @@ const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const { initializeDatabase, userOperations, courseOperations } = require('./database');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// In-memory user storage for MVP
-let users = [];
-let userIdCounter = 1;
+const PORT = process.env.PORT || 8080;
 
 // Security middleware
 app.use(helmet());
@@ -60,7 +57,7 @@ const generateToken = (userId) => {
 };
 
 // Auth middleware
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     try {
         const token = req.header('Authorization')?.replace('Bearer ', '');
         
@@ -72,7 +69,7 @@ const authMiddleware = (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mvp-secret-key-change-in-production');
-        const user = users.find(u => u.id === decoded.userId);
+        const user = await userOperations.findById(decoded.userId);
         
         if (!user) {
             return res.status(401).json({
@@ -132,7 +129,7 @@ app.post('/api/auth/register', async (req, res) => {
         }
 
         // Check if user exists
-        const existingUser = users.find(u => u.email === email);
+        const existingUser = await userOperations.findByEmail(email);
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -142,39 +139,30 @@ app.post('/api/auth/register', async (req, res) => {
 
         // Create user
         const hashedPassword = await hashPassword(password);
-        const user = {
-            id: userIdCounter++,
+        const user = await userOperations.create({
             email,
             password: hashedPassword,
             full_name,
-            membership_tier: 'free',
-            email_verified: true, // Auto-verify for MVP
-            is_active: true,
-            created_at: new Date(),
-            updated_at: new Date()
-        };
-
-        users.push(user);
+            membership_tier: 'free'
+        });
 
         // Generate token
         const token = generateToken(user.id);
 
         // Update last login
-        user.last_login = new Date();
-
-        // Remove password from response
-        const { password: _, ...userResponse } = user;
+        await userOperations.updateLastLogin(user.id);
 
         res.status(201).json({
             success: true,
             message: 'Đăng ký thành công! Chào mừng bạn đến với Ms. Hoa Chinese Learning Platform',
             data: {
-                user: userResponse,
+                user,
                 token
             }
         });
 
     } catch (error) {
+        console.error('Register error:', error);
         res.status(500).json({
             success: false,
             message: 'Lỗi server khi đăng ký. Vui lòng thử lại sau.'
