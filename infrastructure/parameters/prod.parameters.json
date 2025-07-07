@@ -15,10 +15,10 @@
       "value": "mshoaadmin"
     },
     "databaseAdminPassword": {
-      "value": "REPLACE_WITH_SECURE_PASSWORD"
+      "value": "86|J,Dms4q:Y?N0\\;k}*"
     },
     "jwtSecret": {
-      "value": "REPLACE_WITH_SECURE_JWT_SECRET"
+      "value": "dGJaUFdRblZLWW1IOHdqSU41SlNkVHgxTzRVRjl2QUM="
     },
     "containerImageName": {
       "value": "ms-hoa-backend"

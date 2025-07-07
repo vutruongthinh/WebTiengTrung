@@ -15,10 +15,10 @@
       "value": "mshoaadmin"
     },
     "databaseAdminPassword": {
-      "value": "Baolinh2008@"
+      "value": ""
     },
     "jwtSecret": {
-      "value": "ms-hoa-chinese-learning-super-secret-key-2025"
+      "value": ""
     },
     "containerImageName": {
       "value": "ms-hoa-backend"
