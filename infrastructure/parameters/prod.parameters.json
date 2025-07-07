@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "prod"
+    },
+    "location": {
+      "value": "southeastasia"
+    },
+    "staticWebAppLocation": {
+      "value": "eastasia"
+    },
+    "databaseAdminLogin": {
+      "value": "mshoaadmin"
+    },
+    "databaseAdminPassword": {
+      "value": "REPLACE_WITH_SECURE_PASSWORD"
+    },
+    "jwtSecret": {
+      "value": "REPLACE_WITH_SECURE_JWT_SECRET"
+    },
+    "containerImageName": {
+      "value": "ms-hoa-backend"
+    },
+    "containerImageTag": {
+      "value": "latest"
+    }
+  }
+}

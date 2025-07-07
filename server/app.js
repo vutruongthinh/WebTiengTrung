@@ -11,6 +11,9 @@ const { initializeDatabase, userOperations, courseOperations } = require('./data
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// Trust proxy for Azure Container Apps - trust first proxy only for security
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 

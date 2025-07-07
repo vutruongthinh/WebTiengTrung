@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "test"
+    },
+    "location": {
+      "value": "southeastasia"
+    },
+    "staticWebAppLocation": {
+      "value": "eastasia"
+    },
+    "databaseAdminLogin": {
+      "value": "mshoaadmin"
+    },
+    "databaseAdminPassword": {
+      "value": "Baolinh2008@"
+    },
+    "jwtSecret": {
+      "value": "ms-hoa-chinese-learning-super-secret-key-2025"
+    },
+    "containerImageName": {
+      "value": "ms-hoa-backend"
+    },
+    "containerImageTag": {
+      "value": "latest"
+    }
+  }
+}

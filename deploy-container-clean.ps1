@@ -2,11 +2,11 @@
 # This script deploys the Docker container to Azure Container Apps
 
 # Configuration
-$RESOURCE_GROUP = "ms-hoa-resources"
+$RESOURCE_GROUP = "chinese-learning-test"
 $LOCATION = "southeastasia"  # Singapore - closest to Vietnam
 $CONTAINER_APP_NAME = "ms-hoa-backend"
 $CONTAINER_APP_ENV = "ms-hoa-env"
-$ACR_NAME = "mshoaregistry"
+$ACR_NAME = "mshoaregistry9977"
 $IMAGE_NAME = "ms-hoa-backend"
 $IMAGE_TAG = "latest"
 

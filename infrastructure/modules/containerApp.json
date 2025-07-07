@@ -1,0 +1,196 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.36.1.42791",
+      "templateHash": "4030246108535257911"
+    }
+  },
+  "parameters": {
+    "containerAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Container App name"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for the container app"
+      }
+    },
+    "environmentId": {
+      "type": "string",
+      "metadata": {
+        "description": "Container Apps Environment ID"
+      }
+    },
+    "containerRegistryName": {
+      "type": "string",
+      "metadata": {
+        "description": "Container Registry name"
+      }
+    },
+    "containerImageName": {
+      "type": "string",
+      "metadata": {
+        "description": "Container image name"
+      }
+    },
+    "containerImageTag": {
+      "type": "string",
+      "defaultValue": "latest",
+      "metadata": {
+        "description": "Container image tag"
+      }
+    },
+    "postgresServerName": {
+      "type": "string",
+      "metadata": {
+        "description": "PostgreSQL server name"
+      }
+    },
+    "databaseAdminLogin": {
+      "type": "string",
+      "metadata": {
+        "description": "Database administrator login"
+      }
+    },
+    "databaseAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Database administrator password"
+      }
+    },
+    "jwtSecret": {
+      "type": "securestring",
+      "metadata": {
+        "description": "JWT secret"
+      }
+    },
+    "staticWebAppUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "Static Web App URL"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('containerAppName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "managedEnvironmentId": "[parameters('environmentId')]",
+        "configuration": {
+          "secrets": [
+            {
+              "name": "database-password",
+              "value": "[parameters('databaseAdminPassword')]"
+            },
+            {
+              "name": "jwt-secret",
+              "value": "[parameters('jwtSecret')]"
+            },
+            {
+              "name": "registry-password",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-01-01-preview').passwords[0].value]"
+            }
+          ],
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-01-01-preview').loginServer]",
+              "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-01-01-preview').username]",
+              "passwordSecretRef": "registry-password"
+            }
+          ],
+          "ingress": {
+            "external": true,
+            "targetPort": 8080,
+            "transport": "Auto",
+            "traffic": [
+              {
+                "weight": 100,
+                "latestRevision": true
+              }
+            ]
+          }
+        },
+        "template": {
+          "containers": [
+            {
+              "image": "[format('{0}/{1}:{2}', reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-01-01-preview').loginServer, parameters('containerImageName'), parameters('containerImageTag'))]",
+              "name": "[parameters('containerImageName')]",
+              "env": [
+                {
+                  "name": "NODE_ENV",
+                  "value": "production"
+                },
+                {
+                  "name": "PORT",
+                  "value": "8080"
+                },
+                {
+                  "name": "DATABASE_URL",
+                  "value": "[format('postgresql://{0}:{1}@{2}.postgres.database.azure.com/postgres?sslmode=require', parameters('databaseAdminLogin'), parameters('databaseAdminPassword'), parameters('postgresServerName'))]"
+                },
+                {
+                  "name": "JWT_SECRET",
+                  "secretRef": "jwt-secret"
+                },
+                {
+                  "name": "JWT_EXPIRE",
+                  "value": "24h"
+                },
+                {
+                  "name": "FRONTEND_URL",
+                  "value": "[format('https://{0}', parameters('staticWebAppUrl'))]"
+                }
+              ],
+              "resources": {
+                "cpu": "[json('0.5')]",
+                "memory": "1Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 3,
+            "rules": [
+              {
+                "name": "http-scale",
+                "http": {
+                  "metadata": {
+                    "concurrentRequests": "100"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "containerAppId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.App/containerApps', parameters('containerAppName'))]"
+    },
+    "containerAppName": {
+      "type": "string",
+      "value": "[parameters('containerAppName')]"
+    },
+    "applicationUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('containerAppName')), '2023-05-01').configuration.ingress.fqdn]"
+    },
+    "latestRevisionName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('containerAppName')), '2023-05-01').latestRevisionName]"
+    }
+  }
+}
