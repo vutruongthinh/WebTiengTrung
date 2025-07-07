@@ -96,7 +96,6 @@ module containerApp 'modules/containerApp.bicep' = {
   name: 'containerApp-deployment'
   dependsOn: [
     containerRegistry
-    containerAppsEnvironment
     postgresql
   ]
   params: {
@@ -110,7 +109,7 @@ module containerApp 'modules/containerApp.bicep' = {
     databaseAdminLogin: databaseAdminLogin
     databaseAdminPassword: databaseAdminPassword
     jwtSecret: jwtSecret
-    staticWebAppUrl: staticWebApp.outputs.defaultHostname
+    staticWebAppUrl: staticWebApp.outputs.defaultHostName
   }
 }
 
@@ -128,6 +127,6 @@ module staticWebApp 'modules/staticWebApp.bicep' = {
 output resourceGroupName string = resourceGroup().name
 output containerRegistryLoginServer string = containerRegistry.outputs.loginServer
 output containerAppUrl string = containerApp.outputs.applicationUrl
-output staticWebAppUrl string = staticWebApp.outputs.defaultHostname
+output staticWebAppUrl string = staticWebApp.outputs.defaultHostName
 output postgresServerFqdn string = postgresql.outputs.serverFqdn
 output logAnalyticsWorkspaceId string = logAnalytics.outputs.workspaceId

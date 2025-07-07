@@ -82,7 +82,7 @@ resource firewallRuleAll 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRule
 // Main database
 resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
   parent: postgresServer
-  name: 'postgres'
+  name: 'mshoaapp'
   properties: {
     charset: 'UTF8'
     collation: 'en_US.utf8'

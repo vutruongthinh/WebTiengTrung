@@ -1,11 +1,18 @@
-# Deploy Infrastructure to Test Environment
-# This script deploys the Bicep templates to the test environment
+# Deploy to Test Environment
+# Enhanced script to manually deploy infrastructure to test environment
 
 param(
+    [Parameter(Mandatory=$false)]
     [string]$ResourceGroupName = "chinese-learning-test",
+    
+    [Parameter(Mandatory=$false)]
     [string]$Location = "southeastasia",
-    [string]$TemplateFile = "infrastructure\main.bicep",
-    [string]$ParametersFile = "infrastructure\parameters\test.parameters.json"
+    
+    [Parameter(Mandatory=$false)]
+    [string]$DatabasePassword = "Baolinh2008@",
+    
+    [Parameter(Mandatory=$false)]
+    [string]$JwtSecret = "ms-hoa-chinese-learning-super-secret-key-2025"
 )
 
 Write-Host "Deploying infrastructure to TEST environment..." -ForegroundColor Green
