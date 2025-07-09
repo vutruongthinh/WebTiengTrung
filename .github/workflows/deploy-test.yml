@@ -1,0 +1,146 @@
+name: Deploy Infrastructure - Test Environment
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/deploy-infrastructure-test.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/**'
+  workflow_dispatch:
+
+env:
+  AZURE_RESOURCE_GROUP: chinese-learning-test
+  AZURE_LOCATION: southeastasia
+
+jobs:
+  validate:
+    name: Validate Bicep Templates
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Install Bicep CLI
+      run: az bicep install
+      
+    - name: Validate Bicep modules
+      run: |
+        echo "🔍 Validating individual Bicep modules..."
+        az bicep build --file infrastructure/modules/logAnalytics.bicep
+        az bicep build --file infrastructure/modules/storageAccount.bicep
+        az bicep build --file infrastructure/modules/containerRegistry.bicep
+        az bicep build --file infrastructure/modules/postgresql.bicep
+        az bicep build --file infrastructure/modules/containerAppsEnvironment.bicep
+        az bicep build --file infrastructure/modules/containerApp.bicep
+        az bicep build --file infrastructure/modules/staticWebApp.bicep
+        echo "✅ All modules validated successfully"
+        
+    - name: Validate main template
+      run: |
+        echo "🔍 Validating main template with test parameters..."
+        az deployment group validate \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --template-file infrastructure/main.bicep \
+          --parameters infrastructure/parameters/test.parameters.json \
+          --parameters databaseAdminPassword="${{ secrets.DATABASE_ADMIN_PASSWORD }}" \
+          --parameters jwtSecret="${{ secrets.JWT_SECRET }}"
+        echo "✅ Main template validation completed"
+
+  deploy:
+    name: Deploy to Test Environment
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    environment: test
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+        
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Install Bicep CLI
+      run: az bicep install
+      
+    - name: Create Resource Group
+      run: |
+        echo "📦 Ensuring resource group exists..."
+        az group create \
+          --name ${{ env.AZURE_RESOURCE_GROUP }} \
+          --location ${{ env.AZURE_LOCATION }}
+        echo "✅ Resource group ready"
+        
+    - name: Deploy Infrastructure
+      run: |
+        echo "🚀 Deploying infrastructure to test environment..."
+        DEPLOYMENT_NAME="deploy-$(date +%Y%m%d-%H%M%S)"
+        az deployment group create \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --template-file infrastructure/main.bicep \
+          --parameters infrastructure/parameters/test.parameters.json \
+          --parameters databaseAdminPassword="${{ secrets.DATABASE_ADMIN_PASSWORD }}" \
+          --parameters jwtSecret="${{ secrets.JWT_SECRET }}" \
+          --name "$DEPLOYMENT_NAME" \
+          --verbose
+        echo "DEPLOYMENT_NAME=$DEPLOYMENT_NAME" >> $GITHUB_ENV
+        echo "✅ Infrastructure deployment completed"
+        
+    - name: Get Deployment Outputs
+      run: |
+        echo "📋 Getting deployment outputs..."
+        az deployment group show \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name "${{ env.DEPLOYMENT_NAME }}" \
+          --query properties.outputs \
+          --output table
+        echo "✅ Deployment summary complete"
+
+  test:
+    name: Test Deployed Infrastructure
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Test Infrastructure Health
+      run: |
+        echo "🔍 Testing infrastructure health..."
+        
+        # Test Container Registry
+        echo "Testing Container Registry..."
+        az acr list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[0].loginServer" -o tsv
+        
+        # Test PostgreSQL Server
+        echo "Testing PostgreSQL Server..."
+        az postgres flexible-server list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[0].fullyQualifiedDomainName" -o tsv
+        
+        # Test Container App
+        echo "Testing Container App..."
+        az containerapp list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[0].properties.configuration.ingress.fqdn" -o tsv
+        
+        # Test Static Web App
+        echo "Testing Static Web App..."
+        az staticwebapp list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "[0].defaultHostname" -o tsv
+        
+        echo "✅ Infrastructure health check completed"
